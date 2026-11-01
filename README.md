@@ -56,8 +56,10 @@ npm run validate
 
 ## Deploy to Vercel
 
-The repository includes a thin Vercel Node Function adapter and `vercel.json`.
-All planning logic remains in the platform-neutral Fetch API worker.
+The build emits `public/index.html` and `public/app.js` for Vercel's native static
+hosting. Explicit Node Functions serve `/api/plan`, `/api/coordinate`, and
+`/api/health`; no catch-all rewrite or framework detection is required. All
+planning logic remains in the platform-neutral Fetch API worker.
 
 ```bash
 npx vercel          # preview deployment

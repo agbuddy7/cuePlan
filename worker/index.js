@@ -150,7 +150,7 @@ async function coordinateWithAI(plan, env) {
   }
 }
 
-const PAGE = String.raw`<!doctype html>
+export const PAGE = String.raw`<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -207,7 +207,7 @@ const PAGE = String.raw`<!doctype html>
   <script src="/app.js" defer></script>
 </body></html>`;
 
-const APP = String.raw`(() => {
+export const APP = String.raw`(() => {
   "use strict";
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));

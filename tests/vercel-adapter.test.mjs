@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import handler from "../api/index.js";
+import plan from "../api/plan.js";
+import health from "../api/health.js";
+import { APP, PAGE } from "../worker/index.js";
 
 function responseRecorder() {
   const headers = new Map();
@@ -13,17 +15,21 @@ function responseRecorder() {
   };
 }
 
-test("Vercel adapter serves the full application", async () => {
+test("Vercel build emits the full static application", async () => {
+  assert.match(PAGE, /CuePlan/);
+  assert.match(APP, /requestPlan/);
+});
+
+test("Vercel health function reaches the shared worker", async () => {
   const res = responseRecorder();
-  await handler({ method: "GET", url: "/", headers: { host: "cueplan.test" } }, res);
+  await health({ method: "GET", url: "/api/health", headers: { host: "cueplan.test" } }, res);
   assert.equal(res.statusCode, 200);
-  assert.match(res.getHeader("content-type"), /text\/html/);
-  assert.match(res.body.toString(), /CuePlan/);
+  assert.equal(JSON.parse(res.body.toString()).service, "cueplan");
 });
 
 test("Vercel adapter preserves API validation", async () => {
   const res = responseRecorder();
-  await handler({ method: "POST", url: "/api/plan", headers: { host: "cueplan.test", "content-type": "application/json" }, body: { eventType: "invalid" } }, res);
+  await plan({ method: "POST", url: "/api/plan", headers: { host: "cueplan.test", "content-type": "application/json" }, body: { eventType: "invalid" } }, res);
   assert.equal(res.statusCode, 400);
   assert.ok(Array.isArray(JSON.parse(res.body.toString()).errors));
 });
