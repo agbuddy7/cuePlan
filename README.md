@@ -54,6 +54,20 @@ npm run build
 npm run validate
 ```
 
+## Deploy to Vercel
+
+The repository includes a thin Vercel Node Function adapter and `vercel.json`.
+All planning logic remains in the platform-neutral Fetch API worker.
+
+```bash
+npx vercel          # preview deployment
+npx vercel --prod   # production deployment
+```
+
+In Vercel project settings, add `OPENAI_API_KEY` as a server-side environment
+variable to enable live AI briefings. Without it, the tested deterministic
+fallback keeps the entire application usable. Optionally set `OPENAI_MODEL`.
+
 ## Optional AI configuration
 
 Set `OPENAI_API_KEY` as a server-side hosting secret. Optionally set `OPENAI_MODEL`; it defaults to `gpt-5-mini`. Never expose either value in browser code or commit it.
