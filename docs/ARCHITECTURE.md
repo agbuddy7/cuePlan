@@ -1,73 +1,104 @@
-# Architecture and design decisions
+# Architecture reference and decisions
 
-CuePlan is a modular monolith deployed as stateless HTTP functions with static browser assets. One authoritative domain model is reused by Vercel and Worker entry points. This topology keeps a small event-planning application simple to operate while making its boundaries explicit and testable.
+## Context
 
-## Responsibility map
+The core problem is keeping event commitments, estimated costs and execution state consistent when constraints change. The application is one typed codebase with a pure domain and replaceable adapters. Vercel delivers static assets and three HTTP functions. Browser operations are local and synchronous; only a requested Gemini review requires an external service.
 
-| Boundary | Source | Contract |
-|---|---|---|
-| Domain planning | `src/domain/planning.js` | Valid constraints → reconciled plan |
-| Domain workflow | `src/domain/workflow.js` | Task DAG + completed IDs → valid task states |
-| Application briefing | `src/application/briefing.js` | Computed plan → deterministic briefing |
-| AI adapter | `src/infrastructure/gemini.js` | Computed plan + credentials + transport → briefing |
-| Admission control | `src/infrastructure/rate-limit.js` | Request identity + injected clock → admission decision |
-| HTTP boundary | `src/http/router.js` | Fetch request → validated response |
-| HTTP policy | `src/http/responses.js` | Response headers and bounded JSON parsing |
-| Web presentation | `src/web/page.js`, `src/web/client.js` | Responsive interface and user actions |
-| Hosting adapter | `lib/vercel-adapter.js`, `api/` | Node request → Fetch request |
-| Compatibility entry | `worker/index.js` | Stable public exports and Worker handler |
+## Boundaries and dependencies
 
-## Dependency direction
+| Boundary    | Responsibility                                  | Allowed dependencies         |
+| ----------- | ----------------------------------------------- | ---------------------------- |
+| Domain      | Schemas, arithmetic, commands, graph, scenarios | Zod and other domain modules |
+| Application | Compute briefing facts and fallback language    | Domain                       |
+| State       | History, import validation, local persistence   | Domain                       |
+| Server      | Validate requests, admit calls, invoke Gemini   | Domain and application       |
+| UI          | Render facts and dispatch commands              | Domain, state, application   |
+| Hosting     | Adapt Vercel requests                           | Server                       |
+
+The domain never imports React, Vercel, localStorage or a network client. `coordinate()` receives its transport as an optional dependency, allowing provider behavior to be tested without a key.
 
 ```mermaid
 flowchart TD
-  V[Vercel Node adapter] --> H[HTTP router]
-  W[Worker entry point] --> H
-  H --> D[Planning domain]
-  H --> T[Workflow domain]
-  H --> G[Gemini adapter]
-  G --> B[Deterministic briefing]
-  H --> P[Web presentation]
+  UI[React components] --> ST[Workspace command adapter]
+  ST --> D[Domain commands and invariants]
+  ST --> LS[Validated localStorage envelope]
+  UI --> HTTP[Explicit coordinator request]
+  HTTP --> GUARD[HTTP and schema guards]
+  GUARD --> FACTS[Derived budget and schedule facts]
+  FACTS --> AI[Gemini transport adapter]
+  AI --> FALLBACK[Deterministic fallback]
 ```
 
-Domain modules import no network client, hosting SDK, database, browser API, or HTTP router. Infrastructure receives transport dependencies so provider behavior can be tested without credits or network calls.
+## Data model
 
-## ADR 001: modular monolith
+`EventPlan` has version, identifier, revision, constraints, integer allocations, reserve, explicit estimated food rate, locked categories, vendor quotes and tasks. `Workspace` adds up to 20 previous plan snapshots and 100 activity entries. It is the exported/imported storage contract.
 
-Decision: use modules with explicit responsibilities rather than separately deployed services. The current workload shares one domain, one release cadence and small request payloads. Service extraction would introduce network consistency, deployment and observability work without helping the primary workflow. Future persistent collaboration can be added behind an application repository boundary.
+Quotes hold original commercial terms: fixed/per-guest basis, amount, minimum billing, tax inclusion, extra tax percentage, deposit, cancellation and scope notes. Accepted cost is always derived for the current attendance. A single quote per category may be accepted.
 
-## ADR 002: authoritative recomputation
+Tasks hold stable IDs, owners, initial lead days, prerequisites, completion and delay. Effective dates, readiness, blockers and deadline warnings are derived. Constraint edits preserve tasks and quote records. Changing an event date moves relative dates; initial lead-day templates are not silently regenerated after progress begins.
 
-Every coordinator request rebuilds the plan from validated constraints. Client-supplied allocation amounts, reserve values, risks and task arrays are never authoritative. This eliminates a class of inconsistent calculations and prompt-context tampering. The stateless task endpoint likewise rebuilds the graph and validates the requested completion set against prerequisites.
+## Invariants
 
-## ADR 003: normalized budget weights
+1. Budget, allocations and quote amounts use integer rupees.
+2. Allocations plus reserve equal declared budget exactly.
+3. Largest-remainder allocation preserves totals without a special balancing category.
+4. Accepted quote costs are computed from stored terms and attendance.
+5. Locked and accepted categories are excluded from manual redistribution.
+6. A category has at most three quotes and one acceptance through commands.
+7. Task IDs are unique and prerequisites form a directed acyclic graph.
+8. Completed tasks have completed prerequisites.
+9. Every command creates a new validated plan and increments revision.
+10. Undo restores financial and task state while revision continues forward.
+11. Imported workspace history is validated, not trusted because it came from a file.
 
-The working budget is the total minus the protected reserve. Category weights, including priority shifts, are normalized by their sum before allocation. Amounts use integer rupees. Intermediate categories round to ₹100 and the last category receives the reconciliation remainder. Tests exercise low, large and non-round budgets across every priority. The balancing category absorbs rounding variance, not an unallocated percentage of the budget.
+## ADR 001 — Modular monolith
 
-## ADR 004: dependency graph state machine
+One release unit matches the current single-organizer workload. Explicit modules provide separation without introducing inter-service consistency or operational complexity. A database-backed workspace can later replace the storage adapter without rewriting the arithmetic or task rules.
 
-Tasks transition through `blocked → ready → completed`. Readiness is derived from the graph, never manually asserted by a client. The graph validator rejects duplicate IDs, unknown references, cycles and completion sets missing prerequisites. A completion operation returns a new graph and preserves the input. T-minus deadlines are ordered so a prerequisite is scheduled no later than its dependent; compressed event windows may share deadlines.
+## ADR 002 — Shared runtime and compile-time contracts
 
-## ADR 005: bounded AI integration
+Zod schemas are the source of inferred TypeScript domain types. Types catch implementation mistakes; parsing guards untrusted JSON. Semantic validation additionally checks money reconciliation, graph cycles and quote acceptance consistency. API and import paths share these rules.
 
-Gemini is a server-side adapter using the Google Generative Language API. The model remains configurable through `GEMINI_MODEL`; the existing workspace model setting is preserved. The adapter supplies only computed context, requests a short response and uses a six-second cancellation deadline within Vercel's ten-second function budget. Empty responses, upstream errors and transport failures return the deterministic briefing. The transport can be injected in tests.
+## ADR 003 — Command-oriented state
 
-## ADR 006: bounded admission control
+Commands include update constraints, set allocation, toggle lock, record/accept/remove quote, cover gap, complete task and update task. `execute()` is pure. The workspace layer adds history and audit metadata around a successful command. A failed command produces no state change.
 
-The coordinator limiter isolates client identities using hosting forwarding headers, removes expired entries, and bounds its identity map. Its current semantics are per-process, which fits the stateless demo topology. A globally enforced quota would replace this adapter with an atomic shared-store implementation. Forwarded identities must be trusted only behind hosting ingress that controls those headers.
+This is a command-based local state model, not a distributed event-sourcing system. The bounded local activity list is reviewable history, not a tamper-proof server audit record.
 
-## ADR 007: static delivery with shared application core
+## ADR 004 — Forecast versus allocation
 
-The build produces Vercel assets in `public/` and a separate Worker artifact in `dist/`. The Worker artifact contains its module dependencies and ESM package metadata. The artifact validator imports the built entry point from its actual filesystem location. Vercel static responses receive explicit platform headers because static delivery bypasses the Node adapter.
+Allocation is the envelope the organizer has assigned; forecast is the expected cost under current attendance and accepted terms. These are separate values. Guest growth can create a gap without changing the budget. The UI shows that gap and offers explicit alternatives instead of silently rewriting commitments.
 
-## State and consistency
+Unquoted food uses the stored estimated per-guest rate. Changing its allocation explicitly updates that rate. Other unquoted categories use their assigned envelope as an estimate. Tax marked unknown remains excluded from a falsely precise claim of all-in pricing.
 
-The current planning API is pure and stateless. Browser state holds the active plan and completed tasks. A rebuild begins a fresh execution plan. Export captures the current plan for portable handoff. Vendor confirmation currently records an in-session provenance state. The application does not currently implement durable multi-user records, payment execution, vendor messaging or authentication.
+## ADR 005 — Review before application
 
-## Proposed durable workspace design
+Scenario previews call the same pure command logic as committed changes. The comparison lists before/after amounts, reserve, gap and overdue/post-event tasks. Protected allocations constrain feasibility. Funding alternatives are filtered to those that reduce the current gap. Their outputs remain user-reviewed; nothing applies automatically.
 
-This is a design proposal, not a shipped service. Introduce an event aggregate with a monotonically increasing version, optimistic concurrency (`If-Match`), and per-event authorization. Store task completions and vendor quote provenance in transactions. Give each command an idempotency key scoped to the actor and event. Use a transactional outbox for reminders and integration messages, with a unique delivery key and bounded retry policy. Those mechanisms become useful when external writes and concurrent editors are introduced; they are unnecessary for the current pure plan calculation.
+## ADR 006 — Bounded external work
 
-## Proposed observability design
+The server derives a compact fact set from the validated current plan. Gemini receives instructions plus those facts. Provider calls use a six-second cancellation deadline within a ten-second function budget. The client aborts outdated reviews when the plan changes. Empty, invalid or failed responses yield a deterministic result with an explicit mode.
 
-Add structured request logs containing a generated request ID, route, latency, status, coordinator mode and provider duration; exclude credentials and full prompts. Track fallback rate, timeout rate, invalid request rate and plan latency. Introduce trace propagation before splitting services. Availability and performance targets should be based on measured deployments rather than asserted benchmark numbers.
+## ADR 007 — Local-first persistence
+
+Workspace serialization is versioned and size-bounded to 2 MB. Loading and import apply structural and semantic validation. Autosave catches unavailable/full storage and prompts export. Data stays on the current device unless exported or included as derived facts in an explicit AI request.
+
+Version 2 is a new contract. It does not silently migrate the previous demo JSON format; old documents are rejected rather than ambiguously interpreted.
+
+## ADR 008 — Dates as calendar dates
+
+Domain date arithmetic operates on validated ISO calendar dates using UTC day numbers. The UI obtains today's date in Asia/Kolkata. Tests inject dates, keeping the engine independent of a wall clock. Initial template compression avoids scheduling before the start date, while later delays can intentionally produce visible conflicts.
+
+## Extension designs — not shipped services
+
+### Durable collaboration
+
+Introduce an event repository behind the application layer, authenticated actors and event-level authorization. Persist commands in transactions with optimistic concurrency based on revision. Use `If-Match` to reject edits based on a stale version. A client should resolve conflicts by reviewing current state rather than overwriting another organizer's commitments.
+
+### External writes and notifications
+
+Vendor messages, payment actions and reminders require idempotency keys scoped to actor, event and operation. A transactional outbox would commit application state and notification intent together. Workers would deliver with bounded retries and deduplicate delivery keys. No current feature sends vendor messages or executes payments.
+
+### Shared quotas and observability
+
+Current admission control is bounded per function instance, not a global quota. A shared atomic store would enforce cross-instance limits. Structured logs should record route, request ID, latency, coordinator mode and provider duration while excluding keys and full prompts. Service targets should be based on measured deployments.

@@ -1,41 +1,55 @@
 # Deployment and operations
 
-## Release gates
+## Runtime
 
-Run `npm test`, `npm run build`, and `npm run validate`. Unit and API tests run without provider credentials. Tests cover allocation invariants, priority shifts, task ordering, graph validation, task transitions, provider success/failure, rate-limit identity separation, HTTP validation and hosting adapters.
+Use Node.js 22 or later, npm, and a current browser. Install with `npm ci` from the committed lockfile. Development: `npm run dev`. Production build: `npm run build`. Local production preview: `npm run preview`.
 
-## Vercel import
+The Vite development middleware delegates `/api/plan`, `/api/coordinate` and `/api/health` to the same HTTP application used by production handlers. The production preview serves static assets; AI requests there may use the built-in fallback unless an API runtime is provided.
 
-Import `agbuddy7/cuePlan`, select Other, and use the repository root. The tracked `vercel.json` defines `npm run build`, output directory `public`, static security headers and the function execution budget. API entry points are `api/plan.js`, `api/coordinate.js`, `api/tasks.js` and `api/health.js`. No catch-all rewrite is required.
+## Environment
 
-## Secrets
+Export `GEMINI_API_KEY` in the development process or define it as a Vercel runtime environment variable. Optionally define `GEMINI_MODEL` to a model enabled for your Google project. The repository preserves the existing default model name; availability is specific to the account. Missing credentials select deterministic mode. Restart the dev process or redeploy after changing variables.
 
-Set `GEMINI_API_KEY` in the Vercel environment. Set `GEMINI_MODEL` to a Gemini model enabled for that Google project. Redeploy after changing runtime variables. Keep provider values out of repository files and browser JavaScript. The coordinator works in deterministic mode when credentials are absent.
+## Vercel release
 
-## Smoke test
+1. Import `agbuddy7/cuePlan` with framework preset Other and root `./`.
+2. Keep the tracked build command `npm run build` and output `dist`.
+3. Confirm native `api/*.ts` functions are included.
+4. Configure server-side Google variables for the relevant deployment environments.
+5. Run `npm run verify` and `npm run test:e2e` before promoting.
+6. Verify the deployed health endpoint and primary product journey.
 
-1. Load `/` and confirm the default plan renders.
-2. GET `/api/health` and verify `{ "ok": true, "service": "cueplan" }`.
-3. Change priority and verify allocations plus reserve still equal total budget.
-4. Apply a budget/attendance scenario and verify the metrics update.
-5. Complete the brief task and verify venue and guest-list tasks unlock.
-6. Request a coordinator briefing and verify its displayed mode.
-7. Export a plan and verify the task states and allocations appear in JSON.
+The v2 migration changes output from `public` to `dist` and API extensions from JavaScript to TypeScript. Remove stale dashboard overrides that conflict with `vercel.json`. No blanket rewrite should route static assets through an API function.
+
+## Smoke checklist
+
+- `/api/health` reports `ok: true` and version 2.
+- The default community plan renders without a console error.
+- Record and accept a per-guest food quote; committed spend updates.
+- Change attendance in Decisions; preview cost impact before applying.
+- Complete brief approval; venue and guest tasks become ready.
+- Delay venue; downstream date warnings appear.
+- Reload; accepted quote and progress restore.
+- Undo; previous values return.
+- Export/import into a fresh browser context.
+- Print preview includes all operating sections, regardless of active tab.
+- Request a coordinator review and inspect the displayed mode.
 
 ## Rollback
 
-Use Vercel's previous successful deployment promotion, then verify health and the primary planning flow. Keep the domain tests passing before promoting a replacement commit. Current stateless API operations require no database migration or data rollback.
+Promote a previous successful Vercel deployment and recheck health and the planning workflow. Export the current local workspace before reverting to an earlier storage-contract version. The current release has no database migration. Previous code may not understand v2 exports.
 
-## Troubleshooting
+## Diagnostics
 
-| Symptom | Check |
-|---|---|
-| Static page missing | Build log, output directory `public`, repository root |
-| API route missing | `api/` function inclusion and absence of conflicting dashboard rewrites |
-| Coordinator displays fallback | Provider credentials, enabled model, quota and upstream response |
-| Task completion rejected | All prerequisite IDs must be included in the completed set |
-| Coordinator returns 429 | Wait for the one-minute per-process admission window |
+| Symptom              | Check                                                               |
+| -------------------- | ------------------------------------------------------------------- |
+| Missing page/assets  | Output `dist`, repository root and Vite build log                   |
+| Missing API          | Native `api/*.ts` inclusion and conflicting platform overrides      |
+| Built-in coordinator | Credential, model entitlement, quota, provider response and timeout |
+| Rejected scenario    | Protected allocation total versus new working budget                |
+| Blocked completion   | Complete prerequisite tasks first                                   |
+| Failed autosave      | Browser storage permission/capacity; export a backup                |
+| Rejected import      | Version 2 workspace envelope, size, quote and graph invariants      |
+| 429 response         | Per-instance one-minute admission window; inspect Retry-After       |
 
-## Scale boundaries
-
-Planning and workflow calculation are small in-memory operations. API instances can scale independently because constraints are supplied per request. Shared quotas, durable event workspaces, team authorization and notifications require external storage and application services as described in the architecture proposal. The current code does not claim distributed rate-limit enforcement or durable session state.
+Each API response carries an `X-Request-ID`. Error responses repeat this identifier for correlation. No current analytics or server event database stores organizer activity.

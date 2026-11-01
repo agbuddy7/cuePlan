@@ -1,901 +1,203 @@
-# CuePlan — AI Event Command Center
+# CuePlan — Event Decision Workspace
 
-<div align="center">
+[![Quality gates](https://github.com/agbuddy7/cuePlan/actions/workflows/ci.yml/badge.svg)](https://github.com/agbuddy7/cuePlan/actions/workflows/ci.yml)
 
-**Turn real-world event constraints into an executable, transparent, and adaptable plan.**
+**A connected workspace for community organizers managing budgets, vendor commitments, task dependencies, and last-minute decisions.**
 
-[![Quality Gates](https://github.com/agbuddy7/cuePlan/actions/workflows/ci.yml/badge.svg)](https://github.com/agbuddy7/cuePlan/actions/workflows/ci.yml)
-![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
-![Vercel Ready](https://img.shields.io/badge/Vercel-Ready-000000?logo=vercel)
-![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%20Aware-5146e5)
-![Zero Runtime Dependencies](https://img.shields.io/badge/Runtime%20Dependencies-0-16845b)
+CuePlan turns five event constraints into a working budget and execution plan. Organizers can record actual vendor quotes, compare effective costs, accept commitments, adjust category allocations, simulate changes, track dependencies, and undo decisions. Google Gemini reviews a compact set of computed facts and provides a grounded next-action briefing.
 
-**Budget intelligence · Dependency-aware execution · Vendor coordination · Risk management · Grounded AI briefings**
+Built for **Challenge 5: Celebration and Event Planner**. The primary persona is a volunteer or student organizer coordinating a community celebration with limited funds and multiple responsibilities.
 
-</div>
+![CuePlan v2 desktop workspace](docs/screenshots/workspace-desktop.png)
 
----
+[Mobile workspace preview](docs/screenshots/workspace-mobile.png) · [v2 release evidence](docs/RELEASE-v2.md)
 
-## Overview
-
-CuePlan is a production-oriented AI event coordination application designed for community organizers, student teams, volunteer groups, and budget-conscious planners. It transforms five essential constraints—event type, budget, guest count, date, and priority—into a complete operating plan that can be reviewed, simulated, exported, printed, and executed.
-
-The product focuses on the work that happens after an event idea is chosen:
-
-- allocating a fixed budget responsibly;
-- protecting contingency funds;
-- identifying task dependencies and blockers;
-- coordinating vendor cost envelopes;
-- evaluating risks before they become emergencies;
-- adapting the plan when budget or attendance changes;
-- giving organizers a clear next action through an AI coordinator.
-
-CuePlan combines a deterministic planning engine with grounded AI assistance. Calculations remain consistent and auditable, while AI focuses on explanation, prioritization, and coordination.
-
-## Challenge alignment
-
-CuePlan directly addresses **Challenge 5: Celebration and Event Planner**.
-
-| Challenge expectation | CuePlan implementation |
-|---|---|
-| Go beyond idea generation | Produces an operational budget, task graph, vendor ledger, risk register, and run-of-show inputs |
-| Gather user constraints | Uses event type, total budget, guests, event date, and top priority |
-| Adapt dynamically | Rebuilds the plan and previews budget/attendance scenarios in real time |
-| Manage trade-offs | Calculates per-guest impact, reserve impact, and allocation changes before applying a scenario |
-| Track dependencies | Marks tasks as ready or blocked and shows prerequisite task IDs |
-| Coordinate vendors | Maintains category envelopes with Estimate and Confirmed provenance states |
-| Use transparent AI | Separates deterministic calculations from AI-generated coordination language |
-| State assumptions | Includes an assumptions ledger and explicit estimate labels throughout the interface |
-| Remain demonstrable | Provides a resilient coordinator mode and complete planning workflow across deployment environments |
-
----
-
-## Product principles
-
-### 1. Calculations are deterministic
-
-The language model does not calculate the budget. Pure application logic owns:
-
-- category allocations;
-- the protected contingency reserve;
-- per-guest budget;
-- allocation percentages;
-- planning health;
-- task deadlines;
-- task dependencies;
-- constraint-derived risks.
-
-This produces repeatable results and keeps the most important planning decisions testable.
-
-### 2. AI coordinates and explains
-
-The AI coordinator receives an authoritative server-recomputed plan. Its role is to translate computed facts into a concise next-action briefing with a relevant trade-off. The coordinator prompt explicitly prevents invented vendors and ungrounded prices.
-
-### 3. Estimates and confirmed costs remain distinct
-
-Every category begins as an **Estimate**. The vendor ledger promotes a cost to **Confirmed** only after an explicit organizer action. This provenance model keeps planning assumptions visible.
-
-### 4. Trade-offs are previewed before they are applied
-
-The What-if Studio creates an isolated scenario. Organizers can inspect the changed per-guest amount, total budget, attendance, and contingency before committing the new constraints.
-
-### 5. The primary workflow remains fast and resilient
-
-Core planning runs on deterministic application logic, producing an immediately usable experience. The coordinator supports live AI briefings when configured and a grounded deterministic briefing mode for resilient demonstrations.
-
----
-
-## Feature map
-
-### Constraint-driven planning
-
-- Event types for community festivals, birthdays, intimate weddings, fundraisers, and workshops
-- Budget validation from ₹10,000 to ₹1,00,00,000
-- Guest-count validation from 10 to 5,000 attendees
-- Event lead-time validation from 1 to 730 days
-- Priority modes:
-  - Balanced plan
-  - Food quality
-  - Guest experience
-  - Maximum reach
-  - Comfort and accessibility
-- Instant plan reconstruction from updated constraints
-
-### Budget intelligence
-
-- Complete budget reconciliation
-- Protected 10% contingency reserve
-- Working-budget separation
-- Category-level allocation percentages
-- Indian currency formatting
-- Per-guest budget calculation
-- Priority-aware reallocation logic
-- Visual allocation bars and category color system
-- Estimate provenance on unconfirmed costs
-
-The five working categories are:
-
-1. Venue and permits
-2. Food and beverage
-3. Production
-4. Décor and experience
-5. People and logistics
-
-### What-if Studio
-
-- Budget adjustment from −30% to +30%
-- Guest adjustment from −50 to +100 attendees
-- Immediate per-guest impact calculation
-- Updated reserve preview
-- Updated total-budget preview
-- Updated attendance preview
-- Explicit **Apply this scenario** action
-- Separation between preview state and committed plan state
-
-### Dependency-aware timeline
-
-- Ordered execution sequence
-- Ready and blocked task states
-- Task ownership
-- T-minus deadline representation
-- Dependency IDs for prerequisite visibility
-- Event brief approval
-- Venue and permits
-- Vendor quote collection
-- Guest-list and accessibility freeze
-- Run-of-show and contact tree
-- Safety and contingency walkthrough
-
-### Vendor cost ledger
-
-- Category-specific vendor envelopes
-- Estimate and Confirmed status labels
-- Quote-recording interaction
-- Scope, taxes, travel, and cancellation reminders
-- Session-level vendor provenance
-- Clear distinction between planning allowance and confirmed commercial quote
-
-### Risk register
-
-- Constraint-derived risk creation
-- High, medium, and low priority labels
-- Per-guest budget pressure detection
-- Short lead-time detection
-- Crowd-flow planning detection
-- Quote-confirmation awareness
-- Concrete mitigation attached to every risk
-- Plan-health state derived from active risk severity
-
-### AI coordinator
-
-- Server-side Google Gemini API integration
-- Configurable model through `GEMINI_MODEL`
-- Server-only API-key handling
-- Authoritative server-side plan reconstruction
-- Grounded prompt containing computed facts
-- Concise next-action briefing
-- Trade-off explanation
-- Explicit estimate language
-- Deterministic coordinator mode for deployment resilience
-- Accessible live-region updates while a briefing is generated
-
-### Plan portability
-
-- JSON plan export
-- Print-optimized layout
-- Stable plan identifier
-- Human-readable dashboard
-- Machine-readable allocation, risk, task, and confidence structures
-
-### Responsive interface
-
-- Desktop command-center layout
-- Tablet reflow
-- Mobile constraint form
-- Mobile metrics grid
-- Responsive budget and scenario views
-- Print stylesheet
-- Reduced-motion support
-
----
-
-## User journey
-
-```mermaid
-flowchart LR
-    A[Enter five constraints] --> B[Validate inputs]
-    B --> C[Build authoritative plan]
-    C --> D[Review budget and reserve]
-    C --> E[Review task dependencies]
-    C --> F[Review vendors and risks]
-    D --> G[Simulate budget or guest change]
-    G --> H{Apply scenario?}
-    H -->|Yes| C
-    H -->|No| D
-    C --> I[Request coordinator briefing]
-    I --> J[Server recomputes plan]
-    J --> K[Grounded next action]
-    C --> L[Export or print]
-```
-
-### Primary demo flow
-
-1. Select **Community fest**.
-2. Enter a ₹1,20,000 budget for 120 guests.
-3. Choose an event date and **Guest experience** as the priority.
-4. Rebuild the plan.
-5. Review the protected reserve and working allocations.
-6. Reduce the budget by 20% and add 40 guests in the What-if Studio.
-7. Review the per-guest impact before applying the scenario.
-8. Open Timeline to inspect blockers and dependencies.
-9. Open Vendors and record a quote.
-10. Open Risks to review mitigation actions.
-11. Request the AI coordinator briefing.
-12. Export the plan as JSON or print the operating view.
-
----
-
-## Architecture
-
-```mermaid
-flowchart TB
-    subgraph Browser[Browser experience]
-        UI[Responsive dashboard]
-        SIM[What-if simulator]
-        LEDGER[Vendor ledger]
-        EXPORT[JSON export and print]
-    end
-
-    subgraph Static[Vercel static delivery]
-        HTML[public/index.html]
-        JS[public/app.js]
-    end
-
-    subgraph Functions[Vercel Node Functions]
-        PLAN[/api/plan]
-        COORD[/api/coordinate]
-        HEALTH[/api/health]
-        ADAPTER[Fetch API adapter]
-    end
-
-    subgraph Core[Shared application core]
-        VALIDATE[Input validation]
-        ENGINE[Deterministic planning engine]
-        RISK[Risk and health engine]
-        TASKS[Dependency planner]
-        AI[Grounded AI coordinator]
-    end
-
-    OPENAI[Google Gemini API]
-
-    Static --> Browser
-    UI --> PLAN
-    UI --> COORD
-    PLAN --> ADAPTER
-    COORD --> ADAPTER
-    HEALTH --> ADAPTER
-    ADAPTER --> VALIDATE
-    VALIDATE --> ENGINE
-    ENGINE --> RISK
-    ENGINE --> TASKS
-    COORD --> AI
-    AI --> OPENAI
-    SIM --> PLAN
-```
-
-### Request lifecycle
-
-#### Plan generation
-
-```text
-Browser constraints
-  → POST /api/plan
-  → body-size enforcement
-  → schema and range validation
-  → deterministic allocation engine
-  → risk and dependency generation
-  → authoritative JSON plan
-  → dashboard render
-```
-
-#### Coordinator briefing
-
-```text
-Browser plan
-  → POST /api/coordinate
-  → rate limiting
-  → input validation
-  → server-side authoritative plan reconstruction
-  → grounded coordinator prompt
-  → Google Gemini API or deterministic coordinator mode
-  → concise next-action briefing
-```
-
-### Cross-platform runtime
-
-The shared core uses the standard Fetch API and is deployed through thin platform adapters:
-
-- **Vercel:** generated static assets plus explicit Node Functions
-- **Cloudflare-compatible Worker hosting:** default `fetch()` export
-- **Local Node preview:** minimal HTTP bridge for development and QA
-
-This structure keeps business logic independent from the hosting provider.
-
----
-
-## Planning engine
-
-### Budget model
-
-```text
-reserve = round(totalBudget × 10%)
-usableBudget = totalBudget − reserve
-categoryAmount = round(usableBudget × adjustedCategoryWeight / sumOfWeights)
-perGuest = totalBudget ÷ guestCount
-```
-
-Base working-budget weights are adjusted by the selected priority. The final category absorbs rounding variance so every generated plan reconciles exactly:
-
-```text
-sum(category allocations) + contingency reserve = total budget
-```
-
-### Priority behavior
-
-| Priority | Allocation emphasis |
-|---|---|
-| Balanced | Preserves the baseline distribution |
-| Food quality | Increases food allocation and reduces flexible experience categories |
-| Guest experience | Increases production and décor allocation |
-| Maximum reach | Increases logistics and production allocation |
-| Comfort and accessibility | Increases venue and people/logistics allocation |
-
-### Plan health
-
-Plan health is derived from active constraint risks:
-
-- **On track:** healthy lead time and no high-severity constraint signal
-- **Watch:** tighter lead time requiring closer execution management
-- **At risk:** high-severity budget or scheduling pressure requiring immediate action
-
-### Confidence model
-
-The plan includes separate confidence signals for structure and cost provenance. This allows the interface to represent a well-formed execution plan while maintaining clear visibility into estimate status.
-
----
-
-## API reference
-
-### `POST /api/plan`
-
-Builds an authoritative event plan.
-
-#### Request
-
-```json
-{
-  "eventType": "community-fest",
-  "budget": 120000,
-  "guests": 120,
-  "days": 42,
-  "priority": "experience"
-}
-```
-
-#### Response shape
-
-```json
-{
-  "plan": {
-    "id": "CP-COM-120",
-    "input": {},
-    "reserve": 12000,
-    "usable": 108000,
-    "allocations": [],
-    "perGuest": 1000,
-    "risks": [],
-    "health": "on-track",
-    "tasks": [],
-    "confidence": {}
-  }
-}
-```
-
-### `POST /api/coordinate`
-
-Produces a grounded coordinator briefing from a server-recomputed plan.
-
-#### Request
-
-```json
-{
-  "plan": {
-    "input": {
-      "eventType": "community-fest",
-      "budget": 120000,
-      "guests": 120,
-      "days": 42,
-      "priority": "experience"
-    }
-  }
-}
-```
-
-#### Response
-
-```json
-{
-  "mode": "ai",
-  "message": "Approve the event brief first, then lock the venue before comparing vendor quotes...",
-  "assumptions": [
-    "Costs remain estimates until confirmed by vendors",
-    "The deterministic engine owns all calculations"
-  ]
-}
-```
-
-### `GET /api/health`
-
-Returns service readiness information.
-
-```json
-{
-  "ok": true,
-  "service": "cueplan"
-}
-```
-
-### Error format
-
-Validation responses use a predictable JSON shape:
-
-```json
-{
-  "errors": ["Choose a supported event type."]
-}
-```
-
----
-
-## Security architecture
-
-CuePlan applies security controls at the HTTP boundary and business-logic boundary.
-
-### Input and API controls
-
-- Allowlisted event types and priorities
-- Numeric range validation
-- Integer validation for guest count and lead time
-- 24 KB request-body limit
-- Coordinator rate limiting
-- Server-side plan reconstruction
-- Client-provided totals treated as non-authoritative
-- Structured client-safe errors
-- Upstream error isolation
-
-### Secret handling
-
-- `GEMINI_API_KEY` is read only from the server runtime
-- No secret is embedded in HTML or browser JavaScript
-- `.env.example` documents variable names without containing values
-- AI requests are made from the server function
-
-### Browser security headers
-
-- Content Security Policy
-- `frame-ancestors 'none'`
-- `X-Frame-Options: DENY`
-- `X-Content-Type-Options: nosniff`
-- `Referrer-Policy: no-referrer`
-- Restricted Permissions Policy
-- Same-origin scripts and network calls
-- No external font or image dependency
-
-### Data-minimization posture
-
-The current workflow processes event constraints without requiring personal guest information. Export is initiated explicitly by the organizer and remains under user control.
-
----
-
-## Accessibility
-
-The interface is designed around keyboard access, clear semantics, non-color status communication, and responsive readability.
-
-Implemented accessibility measures include:
-
-- Skip-to-content link
-- Semantic header, main, section, article, aside, and footer landmarks
-- Programmatically associated form labels
-- Required-field validation
-- Visible focus indicators
-- Keyboard-operable tabs
-- Native range controls
-- Text labels alongside all status colors
-- `aria-selected` and `aria-controls` tab relationships
-- `aria-live` coordinator updates
-- `aria-busy` generation state
-- Minimum-height interactive controls
-- Reduced-motion media query
-- Responsive text sizing
-- Print-friendly plan output
-- High-contrast estimate and confirmation badges
-
----
-
-## Performance and efficiency
-
-- Zero production runtime dependencies
-- Single shared planning module
-- No client framework hydration cost
-- No external font request
-- No third-party image request
-- Compact static HTML and JavaScript output
-- Instant deterministic planning calculations
-- Edge-compatible Fetch API core
-- Cacheable JavaScript asset
-- No-store policy for personalized plan/API responses
-- Build-time generation of Vercel static assets
-
----
-
-## Testing strategy
-
-The test suite uses Node's built-in test runner and covers business rules, API behavior, security controls, and the Vercel adapter.
-
-### Current automated coverage map
-
-| Area | Test evidence |
-|---|---|
-| Budget reconciliation | Allocations plus reserve equal the exact input budget |
-| Contingency | 10% reserve is protected |
-| Constraint pressure | Infeasible per-guest budget produces an active risk |
-| Validation | Invalid and nonsensical inputs are rejected |
-| Priority modes | Every priority preserves total reconciliation |
-| Coordinator resilience | Grounded deterministic briefing remains available |
-| Server authority | Tampered client totals are ignored and recomputed |
-| HTTP security | CSP, MIME, frame, and permissions headers are asserted |
-| Static application | Vercel build sources contain the complete experience |
-| Health function | Vercel function reaches the shared application core |
-| API adapter | Vercel preserves validation status and response shape |
-
-Run all quality gates:
-
-```bash
-npm test
-npm run build
-npm run validate
-```
-
-GitHub Actions runs the same verification flow on pushes and pull requests to `main`.
-
----
-
-## Project structure
-
-```text
-cuePlan/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # Automated quality gates
-├── .openai/
-│   └── hosting.json               # Worker-hosting manifest
-├── api/
-│   ├── coordinate.js              # Vercel coordinator function
-│   ├── health.js                  # Vercel health function
-│   ├── tasks.js                   # Validated task progression function
-│   └── plan.js                    # Vercel planning function
-├── lib/
-│   └── vercel-adapter.js          # Node-to-Fetch API bridge
-├── scripts/
-│   ├── build.mjs                  # Worker + Vercel static build
-│   ├── preview.mjs                # Local HTTP preview
-│   └── validate-artifact.mjs      # Deployment artifact validation
-├── tests/
-│   ├── engine.test.mjs            # Engine, API, and security tests
-│   └── vercel-adapter.test.mjs    # Vercel integration tests
-├── worker/
-│   └── index.js                   # Thin hosting entry and public exports
-├── src/
-│   ├── domain/                    # Pure planning rules and task DAG
-│   ├── application/               # Deterministic coordination briefings
-│   ├── infrastructure/            # Gemini transport and admission control
-│   ├── http/                      # Router, parsing and response policies
-│   └── web/                       # Dashboard markup and controller
-├── docs/
-│   ├── ARCHITECTURE.md             # Boundaries, invariants and design decisions
-│   └── OPERATIONS.md               # Release, rollback and smoke-test runbook
-├── .env.example                   # Runtime configuration contract
-├── SECURITY.md                    # Security policy and controls
-├── package.json                   # Quality and build commands
-├── vercel.json                    # Vercel production configuration
-└── README.md                      # Product and engineering documentation
-```
-
-The generated `public/` directory contains Vercel's deployable static assets. The generated `dist/` directory contains the Worker deployment artifact.
-
----
-
-## Local development
-
-### Requirements
-
-- Node.js 22+
-- npm
-
-### Setup
+## Start here
 
 ```bash
 git clone https://github.com/agbuddy7/cuePlan.git
 cd cuePlan
-npm test
-npm run build
-node scripts/preview.mjs
+npm ci
+npm run dev
 ```
 
-Open:
-
-```text
-http://127.0.0.1:4173
-```
-
-### Environment variables
+The development server serves both the application and `/api` functions. No provider credential is required for deterministic planning and the built-in coordinator. Configure `GEMINI_API_KEY` in the server environment to enable live Gemini briefings.
 
 ```bash
-GEMINI_API_KEY=your_server_side_key
-GEMINI_MODEL=gemini-3.5-flash-lite
+npm run verify       # format, lint, types, coverage and production build
+npm run test:e2e     # desktop/mobile browser and accessibility journeys
 ```
 
-| Variable | Purpose |
-|---|---|
-| `GEMINI_API_KEY` | Enables live grounded AI coordinator briefings |
-| `GEMINI_MODEL` | Selects the coordinator model; defaults to `gemini-3.5-flash-lite` |
+## Product walkthrough
 
----
+1. Set the occasion, budget, attendance, date and priority.
+2. Review allocations, protected contingency, forecast spend and funding gap.
+3. Record a vendor quote with its pricing basis, minimum billing, tax treatment, deposit and terms.
+4. Compare quotes and explicitly accept one. Accepted quotes drive committed spend.
+5. Lock essential categories or adjust unlocked allocations. Redistribution preserves the budget.
+6. Preview a budget or guest-count change in **Decisions** before applying it.
+7. Complete a prerequisite task to unlock dependent work. Add an owner or delay to see downstream impact.
+8. Review a Gemini briefing, inspect activity history, undo a change, export a workspace or print an operating summary.
 
-## Vercel deployment
+## Implemented feature map
 
-CuePlan is configured for direct GitHub import.
+| Workspace         | What an organizer can do                                                                     | Source                              |
+| ----------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Constraints       | Choose one of five occasions, budget, guests, date and priority                              | `ConstraintsForm.tsx`, `schema.ts`  |
+| Budget            | See allocations, reserve, committed spend, forecast and funding gap                          | `BudgetPanel.tsx`, `budget.ts`      |
+| Redistribution    | Change an unlocked allocation while preserving the total                                     | `redistribute()`                    |
+| Protection        | Lock categories; accepted quote allocations remain protected                                 | `execute()`, `redistribute()`       |
+| Vendor quotes     | Store up to three comparable quotes per category                                             | `QuoteForm.tsx`, `VendorsPanel.tsx` |
+| Quote calculation | Compute fixed/per-guest prices, minimum billing, extra tax and deposits                      | `quoteCost()`                       |
+| Quote acceptance  | Accept one quote per category and update committed spend                                     | `execute()`                         |
+| Vendor flags      | Identify tax uncertainty, missing cancellation terms, minimum billing and allocation overrun | `VendorsPanel.tsx`                  |
+| Forecasting       | Scale estimated food demand with attendance and retain accepted commercial terms             | `budgetFacts()`                     |
+| Decisions         | Review before/after allocations, reserve, funding gap and task warnings                      | `ScenarioPanel.tsx`                 |
+| Alternatives      | Review feasible budget increases, guest reductions and bounded flexible-category trims       | `tradeoffs()`                       |
+| Execution         | Complete ready tasks and unlock dependents                                                   | `workflow.ts`, `TimelinePanel.tsx`  |
+| Delays            | Edit owners and propagate scheduling delay through dependencies                              | `schedule()`                        |
+| State             | Preserve quotes and progress during constraint changes                                       | `execute()`                         |
+| History           | Record actions with revisions; undo up to 20 snapshots                                       | `workspace.ts`                      |
+| Persistence       | Validate and autosave the complete workspace in local browser storage                        | `useWorkspace.ts`                   |
+| Portability       | Export/import a validated versioned JSON workspace                                           | `importWorkspace()`                 |
+| Print             | Print a dedicated budget, execution and accepted-vendor summary                              | `PrintSummary.tsx`                  |
+| Coordination      | Receive a fact-grounded Gemini or deterministic next-action briefing                         | `gemini.ts`, `briefing.ts`          |
 
-### Dashboard deployment
-
-1. Open Vercel and select **Add New → Project**.
-2. Import `agbuddy7/cuePlan`.
-3. Use **Other** as the framework preset.
-4. Keep the repository root as the Root Directory.
-5. Allow `vercel.json` to provide:
-   - Build Command: `npm run build`
-   - Output Directory: `public`
-   - Function configuration for `api/*.js`
-6. Add `GEMINI_API_KEY` as a server-side environment variable.
-7. Optionally add `GEMINI_MODEL=gemini-3.5-flash-lite`.
-8. Deploy.
-
-### CLI deployment
-
-```bash
-npx vercel
-npx vercel --prod
-```
-
-### Production verification
-
-After deployment, verify:
-
-```text
-GET  /api/health
-POST /api/plan
-POST /api/coordinate
-GET  /
-GET  /app.js
-```
-
-The landing page should render the default community-fest plan, and `/api/health` should return `{ "ok": true, "service": "cueplan" }`.
-
----
-
-## CI/CD
-
-The repository includes a least-privilege GitHub Actions workflow.
+## One plan, consistent decisions
 
 ```mermaid
 flowchart LR
-    PUSH[Push or pull request] --> CHECKOUT[Checkout]
-    CHECKOUT --> NODE[Node.js 22]
-    NODE --> TEST[npm test]
-    TEST --> BUILD[npm run build]
-    BUILD --> VALIDATE[npm run validate]
-    VALIDATE --> READY[Deployment-ready commit]
+  I[Organizer command] --> V[Shared schema and domain validation]
+  V --> P[Versioned EventPlan]
+  P --> B[Budget and commitments]
+  P --> T[Task schedule]
+  P --> S[Scenario comparison]
+  P --> A[Coordinator facts]
+  P --> H[History and local autosave]
+  H --> U[Undo or export]
 ```
 
-Recommended branch protection:
+The plan is the only authoritative browser state. Budget totals, risks, readiness and schedule status are derived from it. Components dispatch typed commands; they do not silently edit separate financial or task records.
 
-- Require the **Quality gates** workflow
-- Require pull-request review
-- Prevent force pushes to `main`
-- Enable dependency and secret scanning
-- Connect Vercel production deployment to `main`
-- Use preview deployments for pull requests
+## Money and provenance
 
----
+- Money is stored in integer rupees.
+- The initial reserve is rounded from 10% of the budget.
+- Occasion weights and priorities determine the working allocations.
+- Largest-remainder apportionment assigns every rupee deterministically.
+- Allocations plus reserve always equal the declared budget.
+- Quote costs are derived from recorded vendor terms; accepted quotes contribute to committed spend.
+- Unquoted food demand uses an explicit estimated rate times guest count.
+- Unknown tax remains visibly unconfirmed; excluded services require organizer review.
+- A funding gap is displayed rather than silently increasing the budget.
+- Accepted quote means accepted by the organizer, not independently verified by CuePlan.
 
-## Production extension map
+```text
+working allocation = budget − reserve
+forecast = accepted quote costs + remaining estimated category costs
+funding gap = max(0, forecast + reserve − budget)
+```
 
-The architecture provides clear integration seams for a larger multi-user event operations platform.
+## Decisions with protected commitments
 
-### Persistent planning workspace
+The decision studio evaluates changes against the current plan. It retains accepted quotes, task progress and category locks. A constraint change that cannot fund protected category allocations is rejected with an actionable error. Feasible alternatives show the amount of funding pressure they remove. Flexible trims exclude locked, accepted and food categories and cap cuts at 40% of each eligible category.
 
-- User-owned event records
-- Versioned plans and scenario history
-- Confirmed vendor quote persistence
-- Task completion state
-- Audit history for estimate-to-confirmed transitions
+Applying a decision records a revision and previous snapshot. Undo restores that snapshot while retaining a monotonically increasing revision number and activity record.
 
-### Identity and team collaboration
+## Dependency-aware execution
 
-- Organizer authentication
-- Role-based access for owner, finance, logistics, guest lead, and producer
-- Event-level team invitations
-- Approval workflows
-- Activity feed and comments
+The initial workflow covers brief approval, venue/access, quote procurement, guest needs, run-of-show and a safety walkthrough. Templates scale their initial lead times to the event runway and occasion. Graph validation rejects duplicate identifiers, missing references, cycles and completion sets missing prerequisites.
 
-### Vendor operations
+Task status is derived as `blocked`, `ready`, or `completed`. Delays propagate along the critical upstream path; parallel prerequisite delays use their maximum rather than summing unrelated branches. Overdue and post-event work is labeled explicitly.
 
-- Vendor profiles
-- Quote comparison
-- Contract and invoice attachments
-- Payment milestone tracking
-- Cancellation-policy capture
-- Vendor communication history
+## Google Gemini integration
 
-### Guest operations
+Gemini is used for coordination language. The server validates the submitted plan, recomputes budget and schedule facts, and sends that compact fact set to the Google Generative Language API. Full vendor notes, task-owner names and workspace history are not included in the fact prompt.
 
-- RSVP collection
-- Accessibility and dietary aggregation
-- Capacity management
-- Check-in workflow
-- Privacy-aware guest exports
+The adapter uses a six-second request deadline, constrained output length, server-only secrets and schema validation of provider output. Missing credentials, empty output, provider errors and transport failures return a deterministic briefing from the same current plan facts. The UI identifies which mode answered and cancels stale requests after plan changes.
 
-### Scheduling and notifications
+| Variable         | Purpose                                                                 |
+| ---------------- | ----------------------------------------------------------------------- |
+| `GEMINI_API_KEY` | Server-side Google AI credential                                        |
+| `GEMINI_MODEL`   | Model enabled for your Google project; overrides the repository default |
 
-- Calendar synchronization
-- Deadline reminders
-- Dependency-unblocked alerts
-- Budget-threshold notifications
-- Vendor confirmation reminders
-- Event-day run-of-show notifications
+Set variables in Vercel project settings. Local development reads exported process environment variables. `.env.example` lists names and placeholders; never commit a populated environment file.
 
-### Analytics and observability
+## Engineering architecture
 
-- Budget variance analytics
-- Estimate-versus-confirmed reporting
-- Task completion velocity
-- Coordinator request tracing
-- Structured logs and error monitoring
-- Performance and availability dashboards
+CuePlan uses a modular monolith with a typed domain, immutable commands, a browser persistence adapter, a provider adapter and thin Vercel handlers. The domain has no React, network, filesystem or deployment dependency.
 
-These extension points align with the existing authoritative-plan API, task identifiers, allocation provenance, and provider-neutral core.
+```text
+src/
+  domain/        schema, integer money, budget, plan commands, workflow, scenarios, dates
+  application/   computed coordinator facts and deterministic briefing
+  state/         workspace history, validation, persistence and React adapter
+  server/        HTTP guards, rate limiting and Gemini transport
+  ui/            focused React forms, panels and printable summary
+api/             Vercel plan, coordinate and health entry points
+tests/           invariant, command, storage, provider and HTTP regression tests
+e2e/             complete browser journeys and axe checks
+docs/            architecture, API, operations, testing and accessibility evidence
+```
 
----
+### Quality gates
 
-## Evaluation rubric map
+TypeScript enables `strict`, `noUncheckedIndexedAccess`, unused-symbol checks and switch fallthrough checks. ESLint runs type-aware rules, React Hooks rules and JSX accessibility rules. Prettier provides a consistent reviewable style. The committed lockfile makes CI installation reproducible.
 
-### Code quality
+The coverage scope is the domain, command history, coordinator application and server—not the entire React UI. UI flows have a separate Playwright suite. Reports are generated from actual execution rather than maintained as hard-coded badge percentages.
 
-- Pure deterministic planning functions
-- Provider-neutral Fetch API core
-- Thin deployment adapters
-- Centralized configuration
-- Structured response shapes
-- Zero runtime dependencies
-- Clear project separation
-- Automated CI quality gates
+## Security and privacy
 
-### Security
+- Shared Zod schemas validate plan structures at import and API boundaries.
+- Graph and budget invariants supplement structural validation.
+- HTTP method, JSON media type, origin and 64 KB body checks protect API entry points.
+- Coordinator requests have bounded per-instance admission control and a provider timeout.
+- Credentials remain server-side; the client receives only a validated briefing.
+- React renders user and provider text as text, without HTML injection.
+- External scripts, fonts and images are unnecessary; the production CSP excludes inline scripts and inline styles.
+- Vercel sends frame, MIME, referrer, permissions and transport security headers.
+- Local persistence requires no account and sends no workspace to a database.
+- Gemini review sends a compact derived fact set when explicitly requested.
 
-- Server-only API secret
-- Input validation and allowlists
-- Request-size enforcement
-- Rate limiting
-- Server-side authoritative recomputation
-- Safe error responses
-- CSP and browser security headers
-- Explicit data-minimization model
+See [SECURITY.md](SECURITY.md) for the trust model and reporting guidance.
 
-### Efficiency
+## Deployment on Vercel
 
-- Static HTML and JavaScript delivery
-- Instant deterministic client experience
-- Small serverless functions
-- No framework runtime
-- No external fonts or images
-- Cacheable application asset
-- Shared core across deployment targets
+Import this repository, select **Other**, and keep the repository root. `vercel.json` declares the build and `dist` output. The `api/*.ts` files are native Node functions. No catch-all rewrite is required.
 
-### Testing
+```bash
+npm ci
+npm run verify
+npx vercel --prod
+```
 
-- Budget invariants
-- Constraint risk detection
-- Validation behavior
-- Priority-shift reconciliation
-- Coordinator resilience
-- Tamper resistance
-- Security headers
-- Vercel static and API integration
-- Automated GitHub Actions execution
+After changing Google credentials or model configuration, redeploy. Verify `/api/health`, initial rendering, an accepted quote, a guest-count scenario, task completion and workspace restoration. The operational runbook includes rollback and troubleshooting.
 
-### Accessibility
+## Documentation map
 
-- Semantic landmarks
-- Keyboard-first interactions
-- Visible focus
-- Native form controls
-- Live coordinator status
-- Non-color labels
-- Reduced-motion support
-- Responsive and printable layout
+| Document                               | Contents                                                          |
+| -------------------------------------- | ----------------------------------------------------------------- |
+| [Architecture](docs/ARCHITECTURE.md)   | Boundaries, data model, invariants, decisions and extension seams |
+| [API](docs/API.md)                     | Request contracts, responses, errors and trust model              |
+| [Operations](docs/OPERATIONS.md)       | Local setup, Vercel release, rollback and diagnostics             |
+| [Testing](docs/TESTING.md)             | Commands, coverage scope, invariant matrix and browser journeys   |
+| [Accessibility](docs/ACCESSIBILITY.md) | Keyboard, semantic, responsive and automated validation approach  |
+| [Contributing](CONTRIBUTING.md)        | Verification and change conventions                               |
+| [Security](SECURITY.md)                | Secrets, storage boundaries and HTTP controls                     |
 
-### Problem-statement alignment
+## Challenge evaluation map
 
-- Constraint-first onboarding
-- Executable budget
-- Dynamic trade-off simulation
-- Dependency-aware timeline
-- Vendor coordination
-- Risk mitigations
-- Transparent estimates
-- Grounded AI coordination
+| Criterion     | Implementation evidence                                                                                                 |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Code quality  | Strict TypeScript, shared contracts, immutable commands, focused React components and enforced CI                       |
+| Security      | Validation, invariant checks, quota controls, cancellation, server secrets and strict CSP                               |
+| Efficiency    | Local deterministic calculations, bounded history, compact AI facts and static asset delivery                           |
+| Testing       | Budget matrices, workflow graph validation, provider failure tests, HTTP contracts and full browser journeys            |
+| Accessibility | Native controls, semantic tables, keyboard tabs, visible focus, live status, reduced motion and axe checks              |
+| Alignment     | Execution planning, real vendor commitments, dependency tracking, constraint-aware trade-offs and transparent estimates |
 
----
+## Deliberate system boundaries
 
-## Submission assets
+This release is a local-first single-organizer workspace. Autosave and change history are stored on the current browser; JSON export provides portable handoff. It does not claim a multi-user database, cloud collaboration, immutable server audit log, vendor verification or automatic payments. Architecture proposals for those capabilities are labeled in the design reference.
 
-For a strong demonstration, present CuePlan in this order:
-
-1. Explain the target persona and execution problem.
-2. Build a plan from five constraints.
-3. Show the exact budget reconciliation and protected reserve.
-4. Stress-test the plan in the What-if Studio.
-5. Show timeline dependencies and blockers.
-6. Record a vendor quote to demonstrate cost provenance.
-7. Review the risk register and mitigations.
-8. Request an AI coordinator briefing.
-9. Export or print the resulting plan.
-10. Show the automated test and CI evidence.
-
----
-
-## Repository
-
-- Source: [github.com/agbuddy7/cuePlan](https://github.com/agbuddy7/cuePlan)
-- Primary branch: `main`
-- Deployment target: Vercel
-- Runtime: Node.js 22 / standard Fetch API
-
----
-
-<div align="center">
-
-**CuePlan turns event planning from a collection of ideas into a coordinated execution system.**
-
-</div>
-
-
-## Engineering reference
-
-- [Architecture and seven design decisions](docs/ARCHITECTURE.md)
-- [Deployment and operating procedures](docs/OPERATIONS.md)
-- [Security controls](SECURITY.md)
-
-The application now uses separate `src/domain`, `src/application`, `src/http`, `src/infrastructure`, and `src/web` modules. `worker/index.js` is a thin compatibility entry point. The domain imports no provider or HTTP infrastructure. Gemini transport is injectable and bounded by a six-second timeout. Build artifacts include the complete module tree.
-
-### Task progression API
-
-POST `/api/tasks` with an `input` constraints object and `completedIds`. The server reconstructs the canonical graph and returns validated task states. Completing `brief` unlocks `venue` and `guest-list`. Cycles, unknown dependencies and out-of-order completions are rejected. The dashboard Complete task action uses this endpoint.
-
-### Release evidence
-
-20 automated tests cover reconciliation across budget/priority matrices, prerequisite deadline ordering, immutable task transitions, invalid graphs, Gemini success and failure modes, forwarded-client rate limiting, tamper resistance, HTTP validation and deployment adapters. Both deployment artifacts build and the packaged Worker entry imports successfully.
-
-### Implementation and extension boundaries
-
-Budget planning, scenario simulation, validated task progression, risk derivation, Gemini coordination, JSON export and print views are implemented. Vendor confirmation is an in-session provenance action. Durable event workspaces, identity, optimistic concurrency, transactional outbox delivery and distributed quotas are design proposals in the architecture reference.
+The previous buildless Worker implementation is superseded by the Vercel-focused TypeScript/React application in this release. Legacy deployment scripts and generated-source patterns have been removed rather than retained as competing runtime paths.
