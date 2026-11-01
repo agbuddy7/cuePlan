@@ -168,8 +168,8 @@ The five working categories are:
 
 ### AI coordinator
 
-- Server-side OpenAI Responses API integration
-- Configurable model through `OPENAI_MODEL`
+- Server-side Google Gemini API integration
+- Configurable model through `GEMINI_MODEL`
 - Server-only API-key handling
 - Authoritative server-side plan reconstruction
 - Grounded prompt containing computed facts
@@ -266,7 +266,7 @@ flowchart TB
         AI[Grounded AI coordinator]
     end
 
-    OPENAI[OpenAI Responses API]
+    OPENAI[Google Gemini API]
 
     Static --> Browser
     UI --> PLAN
@@ -307,7 +307,7 @@ Browser plan
   → input validation
   → server-side authoritative plan reconstruction
   → grounded coordinator prompt
-  → OpenAI Responses API or deterministic coordinator mode
+  → Google Gemini API or deterministic coordinator mode
   → concise next-action briefing
 ```
 
@@ -330,7 +330,7 @@ This structure keeps business logic independent from the hosting provider.
 ```text
 reserve = round(totalBudget × 10%)
 usableBudget = totalBudget − reserve
-categoryAmount = round(usableBudget × adjustedCategoryWeight)
+categoryAmount = round(usableBudget × adjustedCategoryWeight / sumOfWeights)
 perGuest = totalBudget ÷ guestCount
 ```
 
@@ -475,7 +475,7 @@ CuePlan applies security controls at the HTTP boundary and business-logic bounda
 
 ### Secret handling
 
-- `OPENAI_API_KEY` is read only from the server runtime
+- `GEMINI_API_KEY` is read only from the server runtime
 - No secret is embedded in HTML or browser JavaScript
 - `.env.example` documents variable names without containing values
 - AI requests are made from the server function
@@ -582,6 +582,7 @@ cuePlan/
 ├── api/
 │   ├── coordinate.js              # Vercel coordinator function
 │   ├── health.js                  # Vercel health function
+│   ├── tasks.js                   # Validated task progression function
 │   └── plan.js                    # Vercel planning function
 ├── lib/
 │   └── vercel-adapter.js          # Node-to-Fetch API bridge
@@ -593,7 +594,16 @@ cuePlan/
 │   ├── engine.test.mjs            # Engine, API, and security tests
 │   └── vercel-adapter.test.mjs    # Vercel integration tests
 ├── worker/
-│   └── index.js                   # UI, planning engine, routes, AI integration
+│   └── index.js                   # Thin hosting entry and public exports
+├── src/
+│   ├── domain/                    # Pure planning rules and task DAG
+│   ├── application/               # Deterministic coordination briefings
+│   ├── infrastructure/            # Gemini transport and admission control
+│   ├── http/                      # Router, parsing and response policies
+│   └── web/                       # Dashboard markup and controller
+├── docs/
+│   ├── ARCHITECTURE.md             # Boundaries, invariants and design decisions
+│   └── OPERATIONS.md               # Release, rollback and smoke-test runbook
 ├── .env.example                   # Runtime configuration contract
 ├── SECURITY.md                    # Security policy and controls
 ├── package.json                   # Quality and build commands
@@ -631,14 +641,14 @@ http://127.0.0.1:4173
 ### Environment variables
 
 ```bash
-OPENAI_API_KEY=your_server_side_key
-OPENAI_MODEL=gpt-5-mini
+GEMINI_API_KEY=your_server_side_key
+GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
 | Variable | Purpose |
 |---|---|
-| `OPENAI_API_KEY` | Enables live grounded AI coordinator briefings |
-| `OPENAI_MODEL` | Selects the coordinator model; defaults to `gpt-5-mini` |
+| `GEMINI_API_KEY` | Enables live grounded AI coordinator briefings |
+| `GEMINI_MODEL` | Selects the coordinator model; defaults to `gemini-3.5-flash-lite` |
 
 ---
 
@@ -656,8 +666,8 @@ CuePlan is configured for direct GitHub import.
    - Build Command: `npm run build`
    - Output Directory: `public`
    - Function configuration for `api/*.js`
-6. Add `OPENAI_API_KEY` as a server-side environment variable.
-7. Optionally add `OPENAI_MODEL=gpt-5-mini`.
+6. Add `GEMINI_API_KEY` as a server-side environment variable.
+7. Optionally add `GEMINI_MODEL=gemini-3.5-flash-lite`.
 8. Deploy.
 
 ### CLI deployment
@@ -868,3 +878,24 @@ For a strong demonstration, present CuePlan in this order:
 **CuePlan turns event planning from a collection of ideas into a coordinated execution system.**
 
 </div>
+
+
+## Engineering reference
+
+- [Architecture and seven design decisions](docs/ARCHITECTURE.md)
+- [Deployment and operating procedures](docs/OPERATIONS.md)
+- [Security controls](SECURITY.md)
+
+The application now uses separate `src/domain`, `src/application`, `src/http`, `src/infrastructure`, and `src/web` modules. `worker/index.js` is a thin compatibility entry point. The domain imports no provider or HTTP infrastructure. Gemini transport is injectable and bounded by a six-second timeout. Build artifacts include the complete module tree.
+
+### Task progression API
+
+POST `/api/tasks` with an `input` constraints object and `completedIds`. The server reconstructs the canonical graph and returns validated task states. Completing `brief` unlocks `venue` and `guest-list`. Cycles, unknown dependencies and out-of-order completions are rejected. The dashboard Complete task action uses this endpoint.
+
+### Release evidence
+
+20 automated tests cover reconciliation across budget/priority matrices, prerequisite deadline ordering, immutable task transitions, invalid graphs, Gemini success and failure modes, forwarded-client rate limiting, tamper resistance, HTTP validation and deployment adapters. Both deployment artifacts build and the packaged Worker entry imports successfully.
+
+### Implementation and extension boundaries
+
+Budget planning, scenario simulation, validated task progression, risk derivation, Gemini coordination, JSON export and print views are implemented. Vendor confirmation is an in-session provenance action. Durable event workspaces, identity, optimistic concurrency, transactional outbox delivery and distributed quotas are design proposals in the architecture reference.
